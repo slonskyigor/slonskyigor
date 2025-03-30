@@ -1,37 +1,196 @@
-#######################################################################
-# title:    6.9 - Utilizing Remote Operations for Large-Scale Deployments
-# original: https://github.com/terraform-cookbook/recipes/tree/main/chapter-06/utilizing-remote-operations-for-large-scale-deployments
-#######################################################################
+terraform {
+  # backend "s3" {
+  #   # Replace this with your bucket name!
+  #   bucket = "tf-state-slonsky"
+  #   key    = "workspaces-example/terraform.tfstate"
+  #   region = "eu-west-1"
+  #
+  #   # Replace this with your DynamoDB table name!
+  #   dynamodb_table = "terraform-up-and-running-locks"
+  #   encrypt        = true
+  # }
+}
 
-# Example of a large-scale deployment resource
-resource "aws_vpc" "main" {
-  cidr_block = "10.0.0.0/16"
+provider "aws" {
+  region = "eu-west-1"
+}
 
-  tags = {
-    Name        = "Large Scale VPC"
-    Environment = "Production"
+resource "aws_s3_bucket" "terraform_state" {
+  bucket = "tf-state-slonsky"
+  force_destroy = true
+  # Prevent accidental deletion of this S3 bucket
+  # lifecycle {
+  #   prevent_destroy = true
+  # }
+}
+
+# Enable versioning so you can see the full revision history of your
+# state files
+resource "aws_s3_bucket_versioning" "enabled" {
+  bucket = aws_s3_bucket.terraform_state.id
+  versioning_configuration {
+    status = "Enabled"
   }
 }
 
-# Use of a module for standardized deployments
-module "ec2_cluster" {
-  source  = "terraform-aws-modules/ec2-instance/aws"
-  version = "~> 3.0"
+resource "aws_s3_bucket_server_side_encryption_configuration" "default" {
+  bucket = aws_s3_bucket.terraform_state.id
 
-  for_each = toset(["1", "2", "3", "4", "5"])
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
 
-  name = "instance-${each.key}"
+resource "aws_s3_bucket_public_access_block" "public_access" {
+  bucket                  = aws_s3_bucket.terraform_state.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
 
-  # Ubuntu 24.04, see https://cloud-images.ubuntu.com/locator/ec2/
-  ami                    = "ami-05d38da78ce859165"
-  instance_type          = "t3.micro"
-  key_name               = "user1"
-  monitoring             = true
-  vpc_security_group_ids = ["sg-12345678"]
-  subnet_id              = "subnet-eddcdzz4"
+resource "aws_dynamodb_table" "terraform_locks" {
+  name         = "terraform-up-and-running-locks"
+  billing_mode = "PAY_PER_REQUEST"
+  hash_key     = "LockID"
 
-  tags = {
-    Environment = "Production"
-    Terraform   = "true"
+  attribute {
+    name = "LockID"
+    type = "S"
+  }
+}
+
+resource "aws_launch_template" "example" {
+  image_id      = "ami-07721f34af7d85e8f"
+  instance_type = "t2.micro"
+  vpc_security_group_ids = [aws_security_group.instance.id]
+
+  user_data = filebase64("${path.module}/web-server.sh")
+
+  # Required when using a launch configuration with an auto scaling group.
+  lifecycle {
+    create_before_destroy = true
+  }
+}
+
+resource "aws_security_group" "instance" {
+  name = "terraform-example-instance"
+
+  ingress {
+    from_port = var.server_port
+    to_port   = var.server_port
+    protocol  = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "alb" {
+  name = "terraform-example-alb"
+
+  # Allow inbound HTTP requests
+  ingress {
+    from_port = 80
+    to_port   = 80
+    protocol  = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # Allow all outbound requests
+  egress {
+    from_port = 0
+    to_port   = 0
+    protocol  = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_autoscaling_group" "example" {
+  name = "terraform-asg-example"
+  launch_template {
+    id      = aws_launch_template.example.id
+    version = "$Latest"
+  }
+  vpc_zone_identifier = data.aws_subnets.default.ids
+
+  target_group_arns = [aws_lb_target_group.asg.arn]
+  health_check_type = "ELB"
+
+  min_size = 2
+  max_size = 10
+
+  tag {
+    key                 = "Name"
+    value               = "terraform-asg-example"
+    propagate_at_launch = true
+  }
+}
+
+resource "aws_lb" "example" {
+  name               = "terraform-asg-example"
+  load_balancer_type = "application"
+  subnets            = data.aws_subnets.default.ids
+  security_groups = [aws_security_group.alb.id]
+}
+
+resource "aws_lb_listener" "http" {
+  load_balancer_arn = aws_lb.example.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  # By default, return a simple 404 page
+  default_action {
+    type = "fixed-response"
+
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "404: page not found"
+      status_code  = 404
+    }
+  }
+}
+
+resource "aws_lb_target_group" "asg" {
+  name     = "terraform-asg-example"
+  port     = var.server_port
+  protocol = "HTTP"
+  vpc_id   = data.aws_vpc.default.id
+
+  health_check {
+    path                = "/"
+    protocol            = "HTTP"
+    matcher             = "200"
+    interval            = 15
+    timeout             = 3
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+  }
+}
+
+resource "aws_lb_listener_rule" "asg" {
+  listener_arn = aws_lb_listener.http.arn
+  priority     = 100
+
+  condition {
+    path_pattern {
+      values = ["*"]
+    }
+  }
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.asg.arn
+  }
+}
+
+data "aws_vpc" "default" {
+  default = true
+}
+
+data "aws_subnets" "default" {
+  filter {
+    name = "vpc-id"
+    values = [data.aws_vpc.default.id]
   }
 }
