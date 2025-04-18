@@ -18,6 +18,5 @@ jobs:
           azcliversion: 2.58.0
           inlineScript: |
             az account list
-            az account set --subscription 97764cf6-4deb-4911-860a-e78e0ee331b2
             az group create --name ${{ secrets.RG_NAME }} --location ${{ secrets.LOCATION }}
-            az deployment group what-if --name BicepDeployment --resource-group ${{ secrets.RG_NAME }} --template-file main.bicep
+            az deployment group create --name BicepDeployment --resource-group ${{ secrets.RG_NAME }} --template-file main.bicep
