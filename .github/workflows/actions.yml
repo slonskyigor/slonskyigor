@@ -1,4 +1,4 @@
-on: [push]
+on: [ push ]
 name: Deploy Bicep template
 jobs:
   build-and-deploy:
@@ -8,3 +8,14 @@ jobs:
       - name: Getting started
         run: |
           echo Hello from GitHub Actions
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Azure CLI script
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.0.72
+          inlineScript: |
+            az group create --name ${{ secrets.RG_NAME }} --location ${{ secrets.LOCATION }}
+            az deployment group what-if --name BicepDeployment --resource-group ${{ secrets.RG_NAME }} --template-file main.bicep
