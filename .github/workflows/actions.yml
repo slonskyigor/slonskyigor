@@ -12,11 +12,10 @@ jobs:
         uses: azure/login@v1
         with:
           creds: ${{ secrets.AZURE_CREDENTIALS }}
-      - name: Azure CLI script
-        uses: azure/CLI@v1
+      - name: deploy
+        uses: azure/arm-deploy@v1
         with:
-          azcliversion: 2.58.0
-          inlineScript: |
-            az account list
-            az group create --name ${{ secrets.RG_NAME }} --location ${{ secrets.LOCATION }}
-            az deployment group create --name BicepDeployment --resource-group ${{ secrets.RG_NAME }} --template-file main.bicep
+          subscriptionId: ${{ secrets.AZURE_SUBSCRIPTION }}
+          resourceGroupName: ${{ secrets.RG_NAME }}
+          template: ./main.bicep
+          failOnStdErr: false
