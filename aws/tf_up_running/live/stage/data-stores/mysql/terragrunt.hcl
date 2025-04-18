@@ -1,14 +1,8 @@
 terraform {
   source = "../../../../modules//data-stores/mysql"
-}
-
-include {
+}include {
   path = find_in_parent_folders("root.hcl")
-}
-
-inputs = {
-  db_name = "example_stage"
-
-  # Set the username using the TF_VAR_db_username environment variable
+}inputs = {
+  db_name = "example_stage"  # Set the username using the TF_VAR_db_username environment variable
   # Set the password using the TF_VAR_db_password environment variable
 }

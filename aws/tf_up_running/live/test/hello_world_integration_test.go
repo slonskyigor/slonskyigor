@@ -1,54 +1,37 @@
-package test
-
-import (
-	"fmt"
-	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
-	"github.com/gruntwork-io/terratest/modules/random"
-	"github.com/gruntwork-io/terratest/modules/terraform"
-	//"github.com/gruntwork-io/terratest/modules/test-structure"
-	"strings"
-	"testing"
-	"time"
-)
-
-// Replace these with the proper paths to your modules
+package testimport (
+"fmt"
+http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
+"github.com/gruntwork-io/terratest/modules/random"
+"github.com/gruntwork-io/terratest/modules/terraform"
+//"github.com/gruntwork-io/terratest/modules/test-structure"
+"strings"
+"testing"
+"time"
+) // Replace these with the proper paths to your modules
 const dbDirStage = "../stage/data-stores/mysql"
 const appDirStage = "../stage/services/hello-world-app"
 
 func TestHelloWorldAppStage(t *testing.T) {
-	t.Parallel()
-
-	// Deploy the MySQL DB
+	t.Parallel() // Deploy the MySQL DB
 	dbOpts := createDbOpts(t, dbDirStage)
 	defer terraform.Destroy(t, dbOpts)
-	terraform.InitAndApply(t, dbOpts)
-
-	// Deploy the hello-world-app
+	terraform.InitAndApply(t, dbOpts) // Deploy the hello-world-app
 	helloOpts := createHelloOpts(dbOpts, appDirStage)
 	defer terraform.Destroy(t, helloOpts)
-	terraform.InitAndApply(t, helloOpts)
-
-	// Validate the hello-world-app works
+	terraform.InitAndApply(t, helloOpts) // Validate the hello-world-app works
 	validateHelloApp(t, helloOpts)
 }
-
 func createDbOpts(t *testing.T, terraformDir string) *terraform.Options {
 	uniqueId := random.UniqueId()
-
 	bucketForTesting := "tf-state-slonsky"
 	bucketRegionForTesting := "eu-west-1"
 	dbStateKey := fmt.Sprintf("%s/%s/terraform.tfstate", t.Name(), uniqueId)
-
 	return &terraform.Options{
-		TerraformDir: terraformDir,
-
-		Vars: map[string]interface{}{
+		TerraformDir: terraformDir, Vars: map[string]interface{}{
 			"db_name":     fmt.Sprintf("test%s", uniqueId),
 			"db_username": "admin",
 			"db_password": "password",
-		},
-
-		BackendConfig: map[string]interface{}{
+		}, BackendConfig: map[string]interface{}{
 			"bucket":  bucketForTesting,
 			"region":  bucketRegionForTesting,
 			"key":     dbStateKey,
@@ -56,29 +39,22 @@ func createDbOpts(t *testing.T, terraformDir string) *terraform.Options {
 		},
 	}
 }
-
 func createHelloOpts(
 	dbOpts *terraform.Options,
 	terraformDir string) *terraform.Options {
-
 	return &terraform.Options{
-		TerraformDir: terraformDir,
-
-		Vars: map[string]interface{}{
+		TerraformDir: terraformDir, Vars: map[string]interface{}{
 			"db_remote_state_bucket": dbOpts.BackendConfig["bucket"],
 			"db_remote_state_key":    dbOpts.BackendConfig["key"],
 			"environment":            dbOpts.Vars["db_name"],
 		},
 	}
 }
-
 func validateHelloApp(t *testing.T, helloOpts *terraform.Options) {
 	albDnsName := terraform.OutputRequired(t, helloOpts, "alb_dns_name")
 	url := fmt.Sprintf("http://%s", albDnsName)
-
 	maxRetries := 10
 	timeBetweenRetries := 10 * time.Second
-
 	http_helper.HttpGetWithRetryWithCustomValidation(
 		t,
 		url,

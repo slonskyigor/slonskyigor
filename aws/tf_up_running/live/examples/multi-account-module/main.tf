@@ -4,18 +4,12 @@ module "multi_account_example" {
     aws.parent = aws.parent
     aws.child  = aws.child
   }
-}
-
-provider "aws" {
+}provider "aws" {
   region = "us-east-2"
   alias  = "parent"
-}
-
-provider "aws" {
+}provider "aws" {
   region = "us-east-2"
-  alias  = "child"
-
-  assume_role {
+  alias  = "child"  assume_role {
     role_arn = "arn:aws:iam::298166645982:role/OrganizationAccountAccessRole"
   }
 }

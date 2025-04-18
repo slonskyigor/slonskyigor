@@ -1,36 +1,22 @@
 terraform {
-  required_version = ">= 1.0.0, < 2.0.0"
-
-  required_providers {
+  required_version = ">= 1.0.0, < 2.0.0"  required_providers {
     kubernetes = {
       source  = "hashicorp/kubernetes"
     }
   }
-}
-
-resource "kubernetes_deployment" "app" {
+}resource "kubernetes_deployment" "app" {
   metadata {
     name = var.name
-  }
-
-  spec {
-    replicas = var.replicas
-
-    template {
+  }  spec {
+    replicas = var.replicas    template {
       metadata {
         labels = local.pod_labels
-      }
-
-      spec {
+      }      spec {
         container {
           name  = var.name
-          image = var.image
-
-          port {
+          image = var.image          port {
             container_port = var.container_port
-          }
-
-          dynamic "env" {
+          }          dynamic "env" {
             for_each = var.environment_variables
             content {
               name  = env.key
@@ -44,14 +30,10 @@ resource "kubernetes_deployment" "app" {
       match_labels = local.pod_labels
     }
   }
-}
-
-resource "kubernetes_service" "app" {
+}resource "kubernetes_service" "app" {
   metadata {
     name = var.name
-  }
-
-  spec {
+  }  spec {
     type = "LoadBalancer"
     port {
       port        = 80
@@ -60,9 +42,7 @@ resource "kubernetes_service" "app" {
     }
     selector = local.pod_labels
   }
-}
-
-locals {
+}locals {
   pod_labels = {
     app = var.name
   }

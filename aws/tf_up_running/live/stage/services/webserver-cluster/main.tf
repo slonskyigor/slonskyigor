@@ -1,8 +1,6 @@
 provider "aws" {
   region = "eu-west-1"
-}
-
-module "webserver_cluster" {
+}module "webserver_cluster" {
   source                 = "../../../../modules/services/hello-world-app"
   cluster_name           = var.cluster_name
   db_remote_state_bucket = var.db_remote_state_bucket
@@ -11,13 +9,9 @@ module "webserver_cluster" {
   min_size               = 2
   max_size               = 10
   enable_autoscaling     = false
-}
-
-resource "aws_security_group_rule" "allow_testing_inbound" {
+}resource "aws_security_group_rule" "allow_testing_inbound" {
   type              = "ingress"
-  security_group_id = module.webserver_cluster.alb_security_group_id
-
-  from_port = 12345
+  security_group_id = module.webserver_cluster.alb_security_group_id  from_port = 12345
   to_port   = 12345
   protocol  = "tcp"
   cidr_blocks = ["0.0.0.0/0"]
