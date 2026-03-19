@@ -34,7 +34,7 @@ resource "aws_instance" "frontend" {
   key_name      = aws_key_pair.generated_key.key_name
   user_data     = data.cloudinit_config.frontend.rendered
 
-  primary_network_interface {
+  network_interface {
     network_interface_id = aws_network_interface.frontend[each.key].id
     device_index         = 0
   }

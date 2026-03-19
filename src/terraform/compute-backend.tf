@@ -33,7 +33,7 @@ resource "aws_instance" "backend" {
   instance_type = var.backend_instance_type
   key_name      = aws_key_pair.generated_key.key_name
 
-  primary_network_interface {
+  network_interface {
     network_interface_id = aws_network_interface.backend[each.key].id
     device_index         = 0
   }
