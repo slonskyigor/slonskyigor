@@ -10,9 +10,7 @@ data "aws_ami" "backend" {
 }
 
 resource "aws_network_interface" "backend" {
-
   for_each = aws_subnet.backend
-
   subnet_id = each.value.id
 }
 
@@ -26,7 +24,6 @@ resource "aws_network_interface_sg_attachment" "backend" {
 }
 
 resource "aws_instance" "backend" {
-
   for_each = aws_subnet.backend
 
   ami           = data.aws_ami.backend.id
@@ -43,5 +40,4 @@ resource "aws_instance" "backend" {
     application = var.application_name
     environment = var.environment_name
   }
-
 }

@@ -10,9 +10,7 @@ data "aws_ami" "frontend" {
 }
 
 resource "aws_network_interface" "frontend" {
-
   for_each = aws_subnet.frontend
-
   subnet_id = each.value.id
 }
 

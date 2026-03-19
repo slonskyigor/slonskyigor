@@ -1,3 +1,5 @@
+data "aws_caller_identity" "current" {}
+
 resource "aws_iam_role" "backend" {
   name = "${var.application_name}-${var.environment_name}-backend"
 
@@ -34,7 +36,7 @@ resource "aws_iam_role_policy" "backend" {
           "secretsmanager:GetSecretValue",
         ]
         Effect   = "Allow"
-        Resource = "arn:aws:secretsmanager:secret:${var.application_name}/${var.environment_name}/*"
+        Resource = "arn:aws:secretsmanager:${var.primary_region}:${data.aws_caller_identity.current.account_id}:secret:${var.application_name}/${var.environment_name}/*"
       },
     ]
   })
