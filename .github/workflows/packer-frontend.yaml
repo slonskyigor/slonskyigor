@@ -55,13 +55,13 @@ jobs:
       working-directory: ${{ env.DOTNET_WORKING_DIRECTORY }}
 
     - name: Upload Deployment Package
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: dotnet-deployment
         path: ${{ env.DOTNET_WORKING_DIRECTORY }}/deployment.zip
 
   packer:
-    needs: [frontend-build]
+    needs: [build]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v3

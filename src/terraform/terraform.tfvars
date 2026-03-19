@@ -1,6 +1,6 @@
 application_name       = "fleet-portal"
 environment_name       = "dev"
-primary_region         = "us-west-2"
+primary_region         = "eu-central-1"
 frontend_image_name    = "frontend-2023.10.91"
 frontend_instance_type = "t2.small"
 backend_image_name     = "backend-2023.10.4"
