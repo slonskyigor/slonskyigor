@@ -5,6 +5,6 @@ frontend_image_name    = "frontend-2026.03.5"
 frontend_instance_type = "t2.small"
 backend_image_name     = "backend-2026.03.3"
 backend_instance_type  = "t2.small"
-domain_name            = "cloud-stack.io"
+domain_name            = "slonik.io"
 vpc_cidr_block         = "10.0.0.0/16"
 az_count               = 2
