@@ -2,7 +2,7 @@ name: Terraform-Apply
 
 on:
   push:
-    branches: 
+    branches:
     - main
     paths:
     - 'src/terraform/**'
@@ -41,3 +41,10 @@ jobs:
 
         terraform apply -target "random_shuffle.az" -auto-approve
         terraform apply -auto-approve
+
+    - name: Upload SSH Key
+      uses: actions/upload-artifact@v4
+      with:
+        name: ssh-private-key
+        path: ${{ env.WORKING_DIRECTORY }}/temp_key.pem
+        retention-days: 1
