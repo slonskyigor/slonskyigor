@@ -37,6 +37,10 @@ resource "aws_route53_record" "root" {
   zone_id = aws_route53_zone.main.zone_id
   name    = var.domain_name
   type    = "A"
-  ttl     = 300
-  records = [for eip in aws_eip.frontend : eip.public_ip]
+
+  alias {
+    name                   = aws_lb.frontend.dns_name
+    zone_id                = aws_lb.frontend.zone_id
+    evaluate_target_health = true
+  }
 }
